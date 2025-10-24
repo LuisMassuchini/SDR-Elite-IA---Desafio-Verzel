@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDR Elite IA - Verzel</title>
+    <style>
+    /* CSS Básico - Mobile-First */
+        body { font-family: sans-serif; margin: 0; background-color: #f4f4f9; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .chat-container { width: 100%; max-width: 500px; height: 100vh; display: flex; flex-direction: column; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .chat-header { padding: 15px; background-color: #007bff; color: white; text-align: center; }
+        .chat-messages { flex-grow: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+        .chat-input { padding: 10px; border-top: 1px solid #ccc; display: flex; }
+        .chat-input input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-right: 10px; }
+        .chat-input button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .message { margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; max-width: 80%; }
+        .user-message { background-color: #d1e7dd; align-self: flex-end; }
+        .assistant-message { background-color: #f8d7da; align-self: flex-start; }
+
+        .loading-dots {
+            display: inline-block;
+            position: relative;
+            width: 60px;
+            height: 10px;
+            top: -5px;
+        }
+        .loading-dots::after {
+            content: '...';
+            font-size: 2em;
+            position: absolute;
+            top: -20px;
+            left: 0;
+            animation: dots 1.4s infinite;
+        }
+        @keyframes dots {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+            100% { content: '.'; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">SDR Verzel IA</div>
+        <div class="chat-messages" id="chat-messages">
+            </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Digite sua mensagem..." aria-label="Mensagem do usuário">
+            <button id="send-button" onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+
+    // Adiciona mensagem ao chat
+        function addMessage(text, sender) {
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}-message`;
+            msg.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            chatMessages.appendChild(msg);
+            chatMessages.scrollTop = chatMessages.scrollHeight; // Rola para a última mensagem
+            
+            return msg;
+        }
+        
+    // Primeira mensagem do assistente
+        addMessage("Olá! Sou o SDR da Verzel. Para começarmos, qual é o seu nome?", 'assistant');
+
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === "") return;
+
+            addMessage(message, 'user');
+            userInput.value = "";
+            sendButton.disabled = true;
+
+            const loadingMessage = addMessage("", 'assistant');
+            loadingMessage.innerHTML = '<span class="loading-dots"></span>';
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message })
+                });
+
+                const data = await response.json();
+                
+                loadingMessage.innerHTML = data.response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                loadingMessage.classList.remove('loading-dots');
+
+            } catch (error) {
+                console.error('Erro na comunicação com o backend:', error);
+                loadingMessage.innerHTML = "Desculpe, ocorreu um erro de conexão. Tente novamente.";
+                loadingMessage.classList.remove('loading-dots');
+            } finally {
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        }
+        
+    // Suporte a tecla Enter
+        userInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
